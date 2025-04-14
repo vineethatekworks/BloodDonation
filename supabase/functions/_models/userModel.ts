@@ -1,13 +1,11 @@
-export interface User {
-    id?: string;
+
+  export interface User {
     full_name: string;
     email: string;
-    password?: string; // only used during signup
     blood_group: string;
     contact: string;
     location: string;
-    role?: string[]; // defaults to ['donor']
-    available_to_donate?: boolean;
-    created_at?: string;
+    role?: string[]; // Optional (default = ['donor'])
+    available_to_donate?: boolean; // Optional (default = false)
   }
   
