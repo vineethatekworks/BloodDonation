@@ -7,5 +7,6 @@
     location: string;
     role?: string[]; // Optional (default = ['donor'])
     available_to_donate?: boolean; // Optional (default = false)
+    password: string
   }
   

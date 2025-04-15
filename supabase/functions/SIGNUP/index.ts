@@ -1,4 +1,4 @@
-import { RegisterHandler } from "../_handlers/UserHandler/RegisterHandler.ts";
+import { signUpHandler } from "../_handlers/UserHandler/signupHandler.ts";
 
 
-Deno.serve(RegisterHandler);
+Deno.serve(signUpHandler);

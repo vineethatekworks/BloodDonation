@@ -2,7 +2,7 @@ import { User } from "../_models/userModel.ts";
 import { supabase } from "../_shared/database/dbconfig.ts";
 
 
-export const insertUser = async (user: User) => {
+export  async function insertUser(user: User) {
   const { data, error } = await supabase
     .from("user")
     .insert({
@@ -18,4 +18,19 @@ export const insertUser = async (user: User) => {
     .single();
 
   return { data, error };
+};
+
+
+//check user already exist or not
+export async function checkUserExist(email: string) {
+
+  const { data, error } = await supabase
+    .from("user")
+    .select("*")
+    .eq("email", email)
+    .maybeSingle(); 
+
+    console.log(data,error);
+  if(error) throw error;
+  return data;
 };

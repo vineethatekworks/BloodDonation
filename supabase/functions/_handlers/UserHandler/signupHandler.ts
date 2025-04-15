@@ -1,51 +1,78 @@
-// // deno-lint-ignore-file
-// import { User } from "../_models/userModel.ts";
-// import { insertUser } from "../_repository/UserRepo.ts";
-// import { supabase } from "../_shared/database/dbconfig.ts";
+import { User } from "../../_models/userModel.ts";
+import { createUser } from "../../_repository/createuser.ts";
+import { checkUserExist } from "../../_repository/UserRepo.ts";
 
+const isValidEmail = (email: string): boolean => {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return emailRegex.test(email);
+};
 
-// export const signupHandler = async (req: Request): Promise<Response> => {
-//   try {
-//     const body: User = await req.json();
+export async function signUpHandler(req: Request): Promise<Response> {
+    try {
+        const { email, full_name, blood_group, contact, location, password }:
+            User = await req.json();
 
-//     const { email, password, ...rest } = body;
-    
+        // Field validation
+        if (!email || !full_name || !blood_group || !contact || !location || !password) {
+            return new Response(
+                JSON.stringify({ error: "Missing required fields" }),
+{
+                    status: 400,
+                    headers: { "Content-Type": "application/json" },
+                },
+            );
+        }
 
+        // Email format validation
+        if (!isValidEmail(email)) {
+            console.log("Invalid email format");
+            return new Response(
+                JSON.stringify({ error: "Invalid email format" }),
+                {
+                    status: 400,
+                    headers: { "Content-Type": "application/json" },
+                },
+            );
+        }
 
+        // check user exists
+        const existingUser = await checkUserExist(email);
+        console.log("checking user exist");
+        if (existingUser) {
 
-//     // Step 1: Create user in Supabase Auth
-//     const { data: authData, error: authError } = await supabase.auth.signUp({
-//         email,
-//         password: body.password ?? '', // Use the optional chaining operator to safely access the password property
-//       });
+            return new Response(
+                JSON.stringify({ error: "User already exists" }),
+                {
+                    status: 400,
+                    headers: { "Content-Type": "application/json" },
+                }
+                );
+        }
+        // Call the repository to create a user
+        const userData = {full_name, email, blood_group, contact, location, password};
 
+        const jwtToken = await createUser(userData); 
 
-//     if (authError) {
-//       return new Response(JSON.stringify({ error: authError.message }), {
-//         status: 400,
-//       });
-//     }
-
-//     // Step 2: Store user profile in 'users' table
-//     const { data, error } = await insertUser({ ...rest, email });
-
-//     if (error) {
-//       return new Response(JSON.stringify({ error: error.message }), {
-//         status: 400,
-//       });
-//     }
-
-//     return new Response(
-//       JSON.stringify({
-//         message: "User registered successfully",
-//         user: authData.user,
-//       }),
-//       { status: 201 },
-//     );
-//   } catch (err) {
-//     return new Response(
-//       JSON.stringify({ error: err || "Unexpected error" }),
-//       { status: 500 },
-//     );
-//   }
-// };
+        // Return the JWT token in the response
+        return new Response(
+            JSON.stringify({
+                jwt_token: jwtToken,
+                message: "User created successfully",
+            }),
+            {
+                status: 201,
+                headers: {
+                    "Content-Type": "application/json",
+                },
+            },
+        );
+    } catch (error) {
+        console.error("Error in sign-up handler:", error);
+        return new Response(JSON.stringify({ message: error }), {
+            status: 400,
+            headers: {
+                "Content-Type": "application/json",
+            },
+        });
+    }
+}
