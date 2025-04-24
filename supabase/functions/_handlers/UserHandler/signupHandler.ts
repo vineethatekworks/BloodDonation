@@ -1,78 +1,44 @@
-import { User } from "../../_models/userModel.ts";
+import { User, UserSchema } from "../../_models/userModel.ts";
 import { createUser } from "../../_repository/createuser.ts";
 import { checkUserExist } from "../../_repository/UserRepo.ts";
 
-const isValidEmail = (email: string): boolean => {
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    return emailRegex.test(email);
-};
-
 export async function signUpHandler(req: Request): Promise<Response> {
     try {
-        const { email, full_name, blood_group, contact, location, password }:
-            User = await req.json();
+        // Parse and validate the incoming JSON data using the User schema
+        const requestData: User = await req.json();
+        const validationResult = UserSchema.safeParse(requestData);
 
-        // Field validation
-        if (!email || !full_name || !blood_group || !contact || !location || !password) {
-            return new Response(
-                JSON.stringify({ error: "Missing required fields" }),
-{
-                    status: 400,
-                    headers: { "Content-Type": "application/json" },
-                },
-            );
+        // If validation fails, return the errors
+        if (!validationResult.success) {
+                const errors = validationResult.error.flatten().fieldErrors;
+                return new Response(JSON.stringify({ errors }), {
+                  status: 400,
+                  headers: { "Content-Type": "application/json" },
+                });
+            
         }
 
-        // Email format validation
-        if (!isValidEmail(email)) {
-            console.log("Invalid email format");
-            return new Response(
-                JSON.stringify({ error: "Invalid email format" }),
-                {
-                    status: 400,
-                    headers: { "Content-Type": "application/json" },
-                },
-            );
-        }
-
-        // check user exists
-        const existingUser = await checkUserExist(email);
-        console.log("checking user exist");
+        // Check if the user already exists
+        const existingUser = await checkUserExist(validationResult.data.email);
         if (existingUser) {
-
             return new Response(
                 JSON.stringify({ error: "User already exists" }),
                 {
                     status: 400,
                     headers: { "Content-Type": "application/json" },
                 }
-                );
+            );
         }
-        // Call the repository to create a user
-        const userData = {full_name, email, blood_group, contact, location, password};
 
-        const jwtToken = await createUser(userData); 
-
-        // Return the JWT token in the response
-        return new Response(
-            JSON.stringify({
-                jwt_token: jwtToken,
-                message: "User created successfully",
-            }),
-            {
-                status: 201,
-                headers: {
-                    "Content-Type": "application/json",
-                },
-            },
-        );
-    } catch (error) {
-        console.error("Error in sign-up handler:", error);
-        return new Response(JSON.stringify({ message: error }), {
-            status: 400,
-            headers: {
-                "Content-Type": "application/json",
-            },
+        // If the user doesn't exist, create a new user
+        const user = await createUser(validationResult.data);
+        return new Response(JSON.stringify({ message: "User created successfully", data: user }), {
+            status: 201,
         });
-    }
-}
+
+    } catch (error) {
+        console.error("Error in handler:", error);
+        return new Response(JSON.stringify({ error: "Internal Server Error" }), {
+            status: 500,
+        });
+    }}

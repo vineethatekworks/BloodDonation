@@ -24,6 +24,7 @@ export async function createUser(userData: Omit<User, 'id' | 'created_at'>) {
         id: user?.id,
         full_name,
         email,
+        password,
         blood_group,
         contact,
         location,
@@ -38,6 +39,5 @@ export async function createUser(userData: Omit<User, 'id' | 'created_at'>) {
     throw new Error(insertError.message);
   }
 
-  // Return the JWT token (session.access_token) after successful sign-up
-  return session?.access_token;  // Return the JWT token
+  return session?.access_token;  
 }
